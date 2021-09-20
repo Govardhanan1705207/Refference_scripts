@@ -1,0 +1,261 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Provision Networking components: VPC, Subnets and Routes.'
+Parameters:
+  Environment:
+    Type: String
+    Description: Name of environment
+  VpcCIDR:
+    Type: String
+    Description: >-
+      The CIDR range for the VPC. This should be a valid private (RFC 1918) CIDR
+      range.
+  AppPrivSubnet01CIDR:
+    Type: String
+    Description: CidrBlock App Private Subnet01
+  AppPrivSubnet02CIDR:
+    Type: String
+    Description: CidrBlock App Private Subnet02
+  AppPrivSubnet03CIDR:
+    Type: String
+    Description: CidrBlock App Private Subnet03
+  MgmtPubSubnet01CIDR:
+    Type: String
+    Description: CidrBlock Mgmt Public Subnet01
+  MgmtPubSubnet02CIDR:
+    Type: String
+    Description: CidrBlock Mgmt Public Subnet02
+  MgmtPubSubnet03CIDR:
+    Type: String
+    Description: CidrBlock Mgmt Public Subnet03
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - Environment
+          - VpcCIDR
+          - AppPrivSubnet01CIDR
+          - AppPrivSubnet02CIDR
+          - AppPrivSubnet03CIDR
+          - MgmtPubSubnet01CIDR
+          - MgmtPubSubnet02CIDR
+          - MgmtPubSubnet03CIDR
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      CidrBlock: !Ref VpcCIDR
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - vpc01
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - igw01
+  GatewayToInternet:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  AppPrivSubnet01:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref AppPrivSubnet01CIDR
+      AvailabilityZone: !Select 
+        - 0
+        - 'Fn::GetAZs': !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - priv-sub-1a
+  AppPrivSubnet02:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref AppPrivSubnet02CIDR
+      AvailabilityZone: !Select 
+        - 1
+        - 'Fn::GetAZs': !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - priv-sub-1b
+  AppPrivSubnet03:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref AppPrivSubnet03CIDR
+      AvailabilityZone: !Select 
+        - 2
+        - 'Fn::GetAZs': !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - priv-sub-1c
+  MgmtPubSubnet01:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref MgmtPubSubnet01CIDR
+      AvailabilityZone: !Select 
+        - 0
+        - 'Fn::GetAZs': !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - pub-sub-1a
+  MgmtPubSubnet02:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref MgmtPubSubnet02CIDR
+      AvailabilityZone: !Select 
+        - 1
+        - 'Fn::GetAZs': !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - pub-sub-1b
+  MgmtPubSubnet03:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref MgmtPubSubnet03CIDR
+      AvailabilityZone: !Select 
+        - 2
+        - 'Fn::GetAZs': !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - pub-sub-1c
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - pub-rt01
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: GatewayToInternet
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  MgmtPublicSubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref MgmtPubSubnet01
+      RouteTableId: !Ref PublicRouteTable
+  MgmtPublicSubnetRouteTableAssociation2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref MgmtPubSubnet02
+      RouteTableId: !Ref PublicRouteTable
+  MgmtPublicSubnetRouteTableAssociation3:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref MgmtPubSubnet03
+      RouteTableId: !Ref PublicRouteTable
+  NAT:
+    DependsOn:
+      - GatewayToInternet
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId:
+        'Fn::GetAtt':
+          - EIP
+          - AllocationId
+      SubnetId: !Ref MgmtPubSubnet01
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - nat01
+  EIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref Environment
+              - priv-rt01
+  PrivRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NAT
+  AppPrivateSubnetRouteTableAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref AppPrivSubnet01
+      RouteTableId: !Ref PrivateRouteTable
+  AppPrivateSubnetRouteTableAssociation2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref AppPrivSubnet02
+      RouteTableId: !Ref PrivateRouteTable
+  AppPrivateSubnetRouteTableAssociation3:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref AppPrivSubnet03
+      RouteTableId: !Ref PrivateRouteTable
+Outputs:
+  VpcId:
+    Description: The VPC Id
+    Value: !Ref VPC
+  PrivSubnet01Id:
+    Description: PrivSubnet01 ID
+    Value: !Ref AppPrivSubnet01
+  PrivSubnet02Id:
+    Description: PrivSubnet02 ID
+    Value: !Ref AppPrivSubnet02
+  PrivSubnet03Id:
+    Description: PrivSubnet03 ID
+    Value: !Ref AppPrivSubnet03
+  PubSubnet01Id:
+    Description: PubSubnet01 ID
+    Value: !Ref MgmtPubSubnet01
+  PubSubnet02Id:
+    Description: PubSubnet02 ID
+    Value: !Ref MgmtPubSubnet02
+  PubSubnet03Id:
+    Description: PubSubnet03 ID
+    Value: !Ref MgmtPubSubnet03
