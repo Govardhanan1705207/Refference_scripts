@@ -1,0 +1,12 @@
+step 1:
+    create a stack in cf using desiginers
+    apply the script
+
+step 2:
+    apply the ip ranges
+    example 10.20.0.0/16
+    10.20.1.0/24 
+    ....
+    ...
+    ...
+    
